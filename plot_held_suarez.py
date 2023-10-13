@@ -56,22 +56,20 @@ def get_zonal_average(data_file, time_idx, field_name, full):
         field_data[:,:, level] = field_data[:,:,level] + fi
     mean_field_data = np.mean(field_data,axis=1)
     if(full):
-        z=zf
+        z = zf
     else:
-        z=zh
+        z = zh
     lat, height = np.meshgrid(yi, z)
-    #breakpoint()
+
     return mean_field_data.T,lat, height
 # ---------------------------------------------------------------------------- #
 # Directory for results and plots
 # ---------------------------------------------------------------------------- #
 # When copying this example these should not be relative to this file
-plot_dir = f'{abspath(dirname(__file__))}'
-results_file_names = ['/data/users/abrown/data/held_suarez/lfric_averaged_C96.nc', \
-                      '/data/users/abrown/data/held_suarez_pdc/lfric_averaged_C48_cdfp.nc', \
-                      '/data/users/abrown/data/held_suarez/lfric_averaged_C48.nc', \
-                      '/data/users/abrown/data/held_suarez_pdc/lfric_averaged_C48_fdcp.nc', \
-                      '/data/users/abrown/data/held_suarez/lfric_averaged_C24.nc']
+results_dir = '/data/users/abrown/data/pdc_idealised_paper/held_suarez'
+plot_dir = '.'
+res_title = ['D96_P96', 'D48_P96', 'D48_P48', 'D48_P24', 'D24_P24']
+results_file_names = [f'{results_dir}/{res_name}/lfric_averaged.nc' for res_name in res_title]
 plot_name = f'{plot_dir}/held_suarez.png'
 # ---------------------------------------------------------------------------- #
 # Things that should be altered based on the plot
@@ -81,20 +79,20 @@ colour_schemes = ['OrRd','RdBu_r']
 time_idx = -1
 field_labels = [r'$\theta \ / $ K', r'$u \ / $ m s$^{-1}$']
 contour_method = 'contour'
-res_title = ["C96", "D48 P96", "C48", "D48 P24", "C24"]
 
-fig, ax = plt.subplots(5, 2, figsize=(8.27, 11.69), sharex='col', sharey='row')
+set_tomplot_style()
+fig, ax = plt.subplots(5, 2, figsize=(12, 12), sharex='col', sharey='row')
 
 for i in range(5):
     # ---------------------------------------------------------------------------- #
     # Things that are likely the same for all plots
     # ---------------------------------------------------------------------------- #
-    set_tomplot_style()
     data_file = Dataset(results_file_names[i], 'r')
     # ---------------------------------------------------------------------------- #
     # Data extraction
     # ---------------------------------------------------------------------------- #
 
+    print(f'Compute zonal average for {field_names[0]}, {res_title[i]}')
     field_data, coords_Y, coords_Z = get_zonal_average(data_file, time_idx, field_names[0],full=True)
     time = data_file['time'][time_idx]
     # ---------------------------------------------------------------------------- #
@@ -104,19 +102,20 @@ for i in range(5):
     cmap, lines = tomplot_cmap(contours, colour_schemes[0])
     cf1, _ = plot_contoured_field(ax[i, 0], coords_Y, coords_Z, field_data, contour_method,
                                 contours, cmap=cmap, line_contours=lines)
-    ax[i,0].set_ylabel(r'$z \ /$ km', fontsize=16)
-    tomplot_field_title(ax[i,0], res_title[i])
-    
-    ax[i,0].set_yticks([0,30]) 
-    ax[i,0].set_yticklabels([0,30], fontsize=12)
-    ax[i,1].set_yticks([0,30]) 
-    ax[i,1].set_yticklabels([0,30], fontsize=12)
+    ax[i,0].set_ylabel(r'$z \ /$ km', labelpad=-10)
+    tomplot_field_title(ax[i,0], res_title[i].replace('_', ' '))
 
+    yticks = [0, 30]
+    ax[i,0].set_yticks(yticks) 
+    ax[i,0].set_yticklabels(yticks)
+    ax[i,1].set_yticks(yticks) 
+    ax[i,1].set_yticklabels(yticks)
 
     # ---------------------------------------------------------------------------- #
     # Data extraction
     # ---------------------------------------------------------------------------- #
 
+    print(f'Compute zonal average for {field_names[1]}, {res_title[i]}')
     field_data, coords_Y, coords_Z = get_zonal_average(data_file, time_idx, field_names[1],full=False)
     time = data_file['time'][time_idx]
     # ---------------------------------------------------------------------------- #
@@ -126,28 +125,22 @@ for i in range(5):
     cmap, lines = tomplot_cmap(contours, colour_schemes[1], remove_contour=0)
     cf, _ = plot_contoured_field(ax[i,1], coords_Y, coords_Z, field_data, contour_method,
                                 contours, cmap=cmap, line_contours=lines)
-    tomplot_field_title(ax[i,1], res_title[i])
+    tomplot_field_title(ax[i,1], res_title[i].replace('_', ' '))
 # ---------------------------------------------------------------------------- #
 # Save figure
 # ---------------------------------------------------------------------------- #
-ax[-1,0].set_xlabel('Latitude', fontsize=15)
-ax[-1,1].set_xlabel('Latitude', fontsize=15)
+ax[-1,0].set_xlabel(r'$\phi \ / $ deg')
+ax[-1,1].set_xlabel(r'$\phi \ / $ deg')
 print(f'Saving figure to {plot_name}')
-set_tomplot_style(fontsize=16, family='serif', usetex=True)
-plt.subplots_adjust(left=0.1,
-                    bottom=0.05,
-                    right=0.9,
-                    top=0.9,
-                    wspace=0.2,
-                    hspace=0.4)
-add_colorbar_fig(fig, cf, field_labels[1], location='bottom', ax_idxs=[9],cbar_ticks=[-40,40], cbar_format=".2g")
-add_colorbar_fig(fig, cf1, field_labels[0], location='bottom', ax_idxs=[8],cbar_ticks=[200,800], cbar_format=".3g")
-plt.subplots_adjust(left=0.1,
-                    bottom=0.05,
-                    right=0.9,
-                    top=0.9,
-                    wspace=0.2,
-                    hspace=0.4)
+# Pad width before adding cbars
+plt.subplots_adjust(wspace=0.1)
+cbar_padding = 0.15
+add_colorbar_fig(fig, cf, field_labels[1], location='bottom', ax_idxs=[9],
+                 cbar_ticks=[-40,40], cbar_format=".2g", cbar_padding=cbar_padding)
+add_colorbar_fig(fig, cf1, field_labels[0], location='bottom', ax_idxs=[8],
+                 cbar_ticks=[200,800], cbar_format=".3g", cbar_padding=cbar_padding)
+plt.subplots_adjust(bottom=0.05,
+                    hspace=0.2)
 fig.savefig(plot_name, bbox_inches='tight')
 plt.close()
 
